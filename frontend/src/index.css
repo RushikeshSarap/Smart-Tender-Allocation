@@ -1,0 +1,141 @@
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1e40af;
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --text: #0f172a;
+  --text-light: #64748b;
+  --winner-bg: #ecfdf5;
+  --winner-border: #10b981;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.dashboard-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(90deg, var(--primary), #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  color: var(--text-light);
+  font-size: 1.1rem;
+}
+
+.winner-card {
+  background: var(--winner-bg);
+  border: 2px solid var(--winner-border);
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  animation: slideIn 0.5s ease-out;
+}
+
+.winner-card h2 {
+  color: var(--winner-border);
+  margin-top: 0;
+}
+
+.explanation {
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+.blockchain-veri {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.badge {
+  background: var(--text);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.tx-id {
+  font-family: monospace;
+  background: #e2e8f0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.bids-table-container {
+  overflow-x: auto;
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  margin-bottom: 2rem;
+}
+
+.bids-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.bids-table th, .bids-table td {
+  padding: 1rem;
+  text-align: right;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.bids-table th:first-child, .bids-table td:first-child {
+  text-align: left;
+}
+
+.bids-table th {
+  background: #f1f5f9;
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+.winner-row {
+  background: #f0fdf4;
+  font-weight: 600;
+}
+
+.winner-row .true-cost-val {
+  color: var(--winner-border);
+  font-weight: 700;
+}
+
+.chart-container {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.chart-container h3 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}

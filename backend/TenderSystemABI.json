@@ -1,0 +1,39 @@
+[
+    {
+      "inputs": [
+        { "name": "_bidId", "type": "uint256" },
+        { "name": "_tenderId", "type": "uint256" },
+        { "name": "_bidHash", "type": "string" }
+      ],
+      "name": "submitBidHash",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "name": "_tenderId", "type": "uint256" },
+        { "name": "_winnerBidId", "type": "uint256" },
+        { "name": "_finalTrueCost", "type": "uint256" }
+      ],
+      "name": "storeResult",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "name": "_bidId", "type": "uint256" }
+      ],
+      "name": "getBidDetails",
+      "outputs": [
+        { "name": "tenderId", "type": "uint256" },
+        { "name": "bidHash", "type": "string" },
+        { "name": "timestamp", "type": "uint256" },
+        { "name": "finalTrueCost", "type": "uint256" },
+        { "name": "isWinner", "type": "bool" }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ]

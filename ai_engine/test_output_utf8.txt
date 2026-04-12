@@ -1,0 +1,76 @@
+﻿--- SMART TENDER ALLOCATION SYSTEM LOGS ---
+Initializing test case with 5 tailored bidders...
+Inputs: delay_cost_per_month=50000, expected_overrun=15%, daily_public_loss=5000
+
+[EVALUATING] Bidder 1: Bidder A (High Delay, Low Cost)
+{
+  "base_cost": 80000.0,
+  "bidder_id": "Bidder A (High Delay, Low Cost)",
+  "delay_cost": 150000.0,
+  "maintenance_cost": 6400.0,
+  "overrun_cost": 5760.0,
+  "risk_penalty": 8800.0,
+  "social_cost": 450000.0,
+  "true_cost": 700960.0
+}
+--------------------------------------------------
+[EVALUATING] Bidder 2: Bidder B (Low Delay, Slightly Higher Cost)
+{
+  "base_cost": 95000.0,
+  "bidder_id": "Bidder B (Low Delay, Slightly Higher Cost)",
+  "delay_cost": 25000.0,
+  "maintenance_cost": 2850.0,
+  "overrun_cost": 2565.0,
+  "risk_penalty": 950.0,
+  "social_cost": 75000.0,
+  "true_cost": 201365.0
+}
+--------------------------------------------------
+[EVALUATING] Bidder 3: Bidder C (Average Profile)
+{
+  "base_cost": 90000.0,
+  "bidder_id": "Bidder C (Average Profile)",
+  "delay_cost": 75000.0,
+  "maintenance_cost": 4500.0,
+  "overrun_cost": 4050.0,
+  "risk_penalty": 4500.0,
+  "social_cost": 225000.0,
+  "true_cost": 403050.0
+}
+--------------------------------------------------
+[EVALUATING] Bidder 4: Bidder D (Super High Cost, Medium Delay)
+{
+  "base_cost": 150000.0,
+  "bidder_id": "Bidder D (Super High Cost, Medium Delay)",
+  "delay_cost": 87500.0,
+  "maintenance_cost": 8250.0,
+  "overrun_cost": 7425.0,
+  "risk_penalty": 9000.0,
+  "social_cost": 262500.0,
+  "true_cost": 524675.0
+}
+--------------------------------------------------
+[EVALUATING] Bidder 5: Bidder E (Low Cost, Average History)
+{
+  "base_cost": 85000.0,
+  "bidder_id": "Bidder E (Low Cost, Average History)",
+  "delay_cost": 62500.0,
+  "maintenance_cost": 3825.0,
+  "overrun_cost": 3442.5,
+  "risk_penalty": 3400.0,
+  "social_cost": 187500.0,
+  "true_cost": 345667.5
+}
+--------------------------------------------------
+
+--- SELECTION RESULTS ---
+Winner Selected: Bidder B (Low Delay, Slightly Higher Cost)
+Winning True Cost: $201,365.00
+Winning Base Cost: $95,000.00
+
+--- L1 TABULATION (Ranked by True Cost) ---
+Rank 1: Bidder B (Low Delay, Slightly Higher Cost) => True Cost: $201,365.00 (Base: $95,000.00)
+Rank 2: Bidder E (Low Cost, Average History) => True Cost: $345,667.50 (Base: $85,000.00)
+Rank 3: Bidder C (Average Profile) => True Cost: $403,050.00 (Base: $90,000.00)
+Rank 4: Bidder D (Super High Cost, Medium Delay) => True Cost: $524,675.00 (Base: $150,000.00)
+Rank 5: Bidder A (High Delay, Low Cost) => True Cost: $700,960.00 (Base: $80,000.00)
