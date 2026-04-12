@@ -12,14 +12,14 @@ const Auth = () => {
     e.preventDefault();
     try {
       if (isLogin) {
-        const res = await axios.post('http://localhost:3000/auth/login', {
+        const res = await axios.post('/auth/login', {
             email: formData.email, password: formData.password
         });
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('role', res.data.user.role);
         navigate(res.data.user.role === 'admin' ? '/admin' : '/bidder');
       } else {
-        await axios.post('http://localhost:3000/auth/register', formData);
+        await axios.post('/auth/register', formData);
         alert('Registered successfully, please login.');
         setIsLogin(true);
       }

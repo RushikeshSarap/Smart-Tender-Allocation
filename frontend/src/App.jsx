@@ -1,6 +1,6 @@
 import React from 'react';
 import axios from 'axios';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import Home from './Home';
 import Login from './Login';
 import Register from './Register';
@@ -8,6 +8,7 @@ import AdminDashboard from './AdminDashboard';
 import BidderDashboard from './BidderDashboard';
 import './index.css';
 
+axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 axios.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -28,18 +29,21 @@ const ProtectedRoute = ({ children, roleRequired }) => {
 };
 
 function App() {
+    const handleLogout = () => {
+        localStorage.clear();
+        window.location.href = '/login';
+    };
+
     return (
         <Router>
-            <nav style={{padding: '1rem 2rem', background: 'var(--surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)'}}>
-                <h2 style={{margin: 0, background: 'linear-gradient(90deg, #2563eb, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', cursor: 'pointer'}} onClick={()=>window.location.href='/'}>System Allocator</h2>
-                <div>
-                   {localStorage.getItem('token') ? (
-                       <button onClick={() => { localStorage.clear(); window.location.href='/login'; }} style={{padding: '0.5rem 1rem', cursor: 'pointer', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold'}}>Logout</button>
-                   ) : (
-                       <div style={{display: 'flex', gap: '1rem'}}>
-                          <button onClick={()=>window.location.href='/login'} style={{padding: '0.5rem 1rem', cursor: 'pointer', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)', borderRadius: '6px', fontWeight: 'bold'}}>Login</button>
-                       </div>
-                   )}
+            <nav className="topbar">
+                <Link to="/" className="brand">System Allocator</Link>
+                <div className="topbar-actions">
+                    {localStorage.getItem('token') ? (
+                        <button className="btn btn-ghost logout-btn" onClick={handleLogout}>Logout</button>
+                    ) : (
+                        <Link to="/login" className="btn btn-secondary">Login</Link>
+                    )}
                 </div>
             </nav>
             <Routes>

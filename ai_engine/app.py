@@ -1,57 +1,238 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-# Note: we will use a more robust ML model later. For now, a simple mock or naive logic.
+import random
+import re
+import os
+import tempfile
+from pdf2image import convert_from_path
+import pytesseract
 
 app = Flask(__name__)
 CORS(app)
 
-import random
+PROJECT_TYPE_MAINTENANCE_FACTORS = {
+    'roads': 0.15,
+    'building': 0.10,
+    'bridge': 0.16,
+    'pipeline': 0.14,
+    'railway': 0.13,
+    'utility': 0.11,
+    'default': 0.09
+}
+
+IMPORTANCE_DAILY_LOSS = {
+    'high': 18000,
+    'medium': 8500,
+    'low': 3200,
+    'default': 6500
+}
+
+PROJECT_TYPE_IMPORTANCE = {
+    'roads': 'high',
+    'bridge': 'high',
+    'building': 'medium',
+    'utility': 'medium',
+    'railway': 'medium',
+    'pipeline': 'low'
+}
+
+
+def clean_text(raw_text):
+    text = re.sub(r'[^\x00-\x7F]+', ' ', raw_text)
+    text = re.sub(r'[\t\r]+', '\n', text)
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
+
+
+def parse_field(patterns, text, default=''):
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+    return default
+
+
+def normalize_project_type(value):
+    if not value:
+        return 'default'
+    lower = value.lower()
+    for key in PROJECT_TYPE_MAINTENANCE_FACTORS.keys():
+        if key in lower:
+            return key
+    return 'default'
+
+
+def importance_for_project(project_type):
+    return PROJECT_TYPE_IMPORTANCE.get(project_type, PROJECT_TYPE_IMPORTANCE['default'])
+
+
+def estimate_cost_per_month(total_budget):
+    if total_budget <= 100000:
+        return total_budget * 0.05
+    if total_budget <= 500000:
+        return total_budget * 0.04
+    if total_budget <= 2000000:
+        return total_budget * 0.03
+    return total_budget * 0.02
+
+
+def estimate_predicted_delay(proposed_timeline, avg_delay_days, success_rate, rating_score):
+    timeline_factor = max(0.8, min(2.2, proposed_timeline / 90))
+    performance_penalty = max(0, (0.75 - success_rate) * 0.9 + (avg_delay_days / 60) * 0.12 + max(0, 4.5 - rating_score) * 0.08)
+    delay = max(0.0, min(8.0, timeline_factor * 2.5 + performance_penalty * 4.2))
+    return delay
+
+
+def estimate_overrun_probability(success_rate, avg_delay_days, rating_score, bid_amount, budget):
+    base_probability = 0.16
+    success_adjust = (1.0 - success_rate) * 0.24
+    delay_adjust = min(avg_delay_days / 90, 0.18)
+    rating_adjust = max(0.0, (5.0 - rating_score) * 0.05)
+    budget_adjust = min(0.12, (bid_amount / max(budget, bid_amount, 1)) * 0.13)
+    probability = base_probability + success_adjust + delay_adjust + rating_adjust + budget_adjust
+    return max(0.02, min(0.92, probability))
+
+
+def estimate_risk_score(success_rate, avg_delay_days, rating_score):
+    score = 1.0 + (0.6 - success_rate) + (avg_delay_days / 90) + max(0, (4.5 - rating_score) * 0.22)
+    return max(0.2, min(2.0, score))
+
+
+def parse_numeric(value):
+    if not value:
+        return 0.0
+    cleaned = re.sub(r'[^0-9\.]', '', str(value))
+    try:
+        return float(cleaned)
+    except ValueError:
+        return 0.0
+
 
 @app.route('/predict_true_cost', methods=['POST'])
 def predict_true_cost():
-    data = request.json
+    data = request.json or {}
     try:
-        bidder_id = data.get('bidder_id', 'unknown')
-        base_cost = float(data.get('base_cost') or data.get('quoted_bid', 0))
-        
-        # We'll use mock logic or rule-based estimation to simulate ML inference using history
-        bidder_history_score = float(data.get('bidder_history_score', random.uniform(0.5, 1.5))) 
-        
-        # 1. Delay Cost = predicted delay (months) * cost per month
-        predicted_delay_months = max(0, 4.0 - (bidder_history_score * 2.5))
-        cost_per_month = float(data.get('cost_per_month', 50000))
-        delay_cost = predicted_delay_months * cost_per_month
-        
-        # 2. Overrun Cost = probability of overrun * expected overrun amount
-        overrun_prob = max(0, min(1.0, 0.6 - (bidder_history_score * 0.3)))
-        expected_overrun = base_cost * 0.15 
-        overrun_cost = overrun_prob * expected_overrun
-        
-        # 3. Maintenance Cost = estimated future repair/maintenance cost
-        maintenance_cost = base_cost * 0.05 * max(0.5, (2.0 - bidder_history_score))
-        
-        # 4. Social Impact Cost = daily public loss * expected delay days
-        daily_public_loss = float(data.get('daily_public_loss', 5000))
-        expected_delay_days = predicted_delay_months * 30
-        social_cost = daily_public_loss * expected_delay_days
-        
-        # 5. Risk Penalty = score derived from bidder past performance
-        risk_penalty = base_cost * max(0, 0.1 * (1.5 - bidder_history_score))
-        
+        base_cost = float(data.get('base_cost') or data.get('quoted_bid') or 0)
+        proposed_timeline = float(data.get('proposed_timeline') or data.get('estimated_completion_days') or 90)
+        budget = float(data.get('project_budget') or data.get('budget') or base_cost)
+        project_type = normalize_project_type(data.get('project_type') or '')
+        importance = importance_for_project(project_type)
+
+        total_projects = int(data.get('total_projects') or 0)
+        success_rate = float(data.get('success_rate') or 0.78)
+        avg_delay_days = float(data.get('avg_delay_days') or 18)
+        rating_score = float(data.get('rating_score') or 4.1)
+
+        predicted_delay = estimate_predicted_delay(proposed_timeline, avg_delay_days, success_rate, rating_score)
+        overrun_probability = estimate_overrun_probability(success_rate, avg_delay_days, rating_score, base_cost, budget)
+        risk_score = estimate_risk_score(success_rate, avg_delay_days, rating_score)
+
+        cost_per_month = estimate_cost_per_month(budget)
+        delay_cost = predicted_delay * cost_per_month
+        expected_overrun_amount = base_cost * 0.18
+        overrun_cost = overrun_probability * expected_overrun_amount
+        maintenance_factor = PROJECT_TYPE_MAINTENANCE_FACTORS.get(project_type, PROJECT_TYPE_MAINTENANCE_FACTORS['default'])
+        maintenance_cost = base_cost * maintenance_factor
+        daily_public_loss = IMPORTANCE_DAILY_LOSS.get(importance, IMPORTANCE_DAILY_LOSS['default'])
+        social_cost = daily_public_loss * (predicted_delay * 30)
+        risk_penalty = base_cost * min(0.25, 0.08 * risk_score * ((1.2 - success_rate) + (avg_delay_days / 90)))
+
         true_cost = base_cost + delay_cost + overrun_cost + maintenance_cost + social_cost + risk_penalty
 
+        explanation = (
+            f"Bidder predicted delay is {predicted_delay:.1f} months, overrun probability is {overrun_probability:.2f}, "
+            f"and risk score is {risk_score:.2f}. This results in the lowest total True Cost when hidden costs are added to the base bid."
+        )
+
         return jsonify({
-            "bidder_id": bidder_id,
-            "base_cost": round(base_cost, 2),
-            "delay_cost": round(delay_cost, 2),
-            "overrun_cost": round(overrun_cost, 2),
-            "maintenance_cost": round(maintenance_cost, 2),
-            "social_cost": round(social_cost, 2),
-            "risk_penalty": round(risk_penalty, 2),
-            "true_cost": round(true_cost, 2)
+            'predicted_delay': round(predicted_delay, 2),
+            'overrun_probability': round(overrun_probability, 2),
+            'risk_score': round(risk_score, 2),
+            'delay_cost': round(delay_cost, 2),
+            'overrun_cost': round(overrun_cost, 2),
+            'maintenance_cost': round(maintenance_cost, 2),
+            'social_cost': round(social_cost, 2),
+            'risk_penalty': round(risk_penalty, 2),
+            'base_cost': round(base_cost, 2),
+            'true_cost': round(true_cost, 2),
+            'explanation': explanation,
+            'components': {
+                'base_cost': round(base_cost, 2),
+                'delay_cost': round(delay_cost, 2),
+                'overrun_cost': round(overrun_cost, 2),
+                'maintenance_cost': round(maintenance_cost, 2),
+                'social_cost': round(social_cost, 2),
+                'risk_penalty': round(risk_penalty, 2)
+            }
         })
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 400
+        return jsonify({'status': 'error', 'message': str(e)}), 400
+
+
+@app.route('/extract_tender', methods=['POST'])
+def extract_tender():
+    if 'file' not in request.files:
+        return jsonify({'error': 'PDF file is required'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'PDF file is required'}), 400
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        file_path = os.path.join(temp_dir, file.filename)
+        file.save(file_path)
+
+        try:
+            pages = convert_from_path(file_path, dpi=200)
+            full_text = ''
+            for page in pages:
+                page_text = pytesseract.image_to_string(page)
+                full_text += page_text + '\n'
+
+            normalized = clean_text(full_text)
+
+            title = parse_field([
+                r'Tender Title[:\-]\s*(.+)',
+                r'Project Title[:\-]\s*(.+)',
+                r'Title[:\-]\s*(.+)'
+            ], normalized)
+            estimated_budget = parse_field([
+                r'Estimated Budget[:\-]\s*\$?([0-9,\.]+)',
+                r'Budget[:\-]\s*\$?([0-9,\.]+)'
+            ], normalized)
+            deadline = parse_field([
+                r'Deadline[:\-]\s*([A-Za-z0-9\-/ ,]+)',
+                r'Deadline Date[:\-]\s*([A-Za-z0-9\-/ ,]+)'
+            ], normalized)
+            required_experience = parse_field([
+                r'Required Experience[:\-]\s*(.+)',
+                r'Experience Required[:\-]\s*(.+)',
+                r'Minimum Experience[:\-]\s*(.+)'
+            ], normalized)
+            project_type = parse_field([
+                r'Project Type[:\-]\s*(.+)',
+                r'Type of Project[:\-]\s*(.+)'
+            ], normalized)
+
+            description = parse_field([
+                r'Description[:\-]\s*(.+?)(?:\n(?:Estimated Budget|Budget|Deadline|Required Experience|Project Type)[:\-])'
+            ], full_text)
+            if not description:
+                lines = normalized.split('\n')
+                description = ' '.join(lines[1:5]).strip()
+
+            return jsonify({
+                'title': title,
+                'description': description,
+                'estimated_budget': estimated_budget,
+                'deadline': deadline,
+                'experience_required': required_experience,
+                'project_type': project_type,
+                'raw_text': normalized
+            })
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)

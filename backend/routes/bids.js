@@ -1,31 +1,53 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const db = require('../db');
 const { generateBidHash, blockchainLogger } = require('../web3_setup');
 const { authenticateToken } = require('../middleware/authMiddleware');
 
-router.post('/', authenticateToken, async (req, res) => {
-    const { tender_id, bidder_id, quoted_bid, delay_factor, risk_score } = req.body;
+const upload = multer({
+    storage: multer.diskStorage({
+        destination: function (req, file, cb) {
+            const uploadPath = path.join(__dirname, '..', 'uploads', 'bids');
+            if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
+            cb(null, uploadPath);
+        },
+        filename: function (req, file, cb) {
+            const safeName = `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9\.\-]/g, '_')}`;
+            cb(null, safeName);
+        }
+    }),
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+        if (!allowedTypes.includes(file.mimetype)) return cb(new Error('Only PDF/PNG/JPG documents are allowed'), false);
+        cb(null, true);
+    }
+});
+
+router.post('/', authenticateToken, upload.single('support_doc'), async (req, res) => {
+    const { tender_id, quoted_bid, estimated_completion_days } = req.body;
+    const bidder_id = req.user?.id;
+    const support_doc_url = req.file ? `/uploads/bids/${req.file.filename}` : null;
+
     try {
         console.log(`[INFO] Received bid for Tender ${tender_id} from Bidder ${bidder_id}`);
 
-        // Generate Hash
-        const bidDataObj = { tender_id, bidder_id, quoted_bid, delay_factor, risk_score };
+        const bidDataObj = { tender_id, bidder_id, quoted_bid, estimated_completion_days, support_doc_url };
         const bid_hash = generateBidHash(bidDataObj);
 
-        // Store sequentially in DB (True costs will be 0 until evaluation)
         const [result] = await db.query(
-            'INSERT INTO bids (tender_id, bidder_id, quoted_bid, hidden_costs, true_cost, bid_hash) VALUES (?, ?, ?, 0, 0, ?)',
-            [tender_id, bidder_id, quoted_bid, bid_hash]
+            'INSERT INTO bids (tender_id, bidder_id, quoted_bid, estimated_completion_days, support_doc_url, hidden_costs, true_cost, bid_hash) VALUES (?, ?, ?, ?, ?, 0, 0, ?)',
+            [tender_id, bidder_id, quoted_bid, estimated_completion_days || null, support_doc_url, bid_hash]
         );
         const bidId = result.insertId;
 
         console.log(`[INFO] Bid stored in MySQL successfully. Bid ID: ${bidId}`);
 
-        // Store Hash on Blockchain
         await blockchainLogger.storeBidHash(bidId, tender_id, bid_hash);
 
-        res.status(201).json({ message: 'Bid submitted and secured on blockchain successfully', id: bidId, hash: bid_hash });
+        res.status(201).json({ message: 'Bid submitted and secured on blockchain successfully', id: bidId, hash: bid_hash, support_doc_url });
     } catch (err) {
         console.error(`[ERROR] Failed to submit bid: ${err.message}`);
         res.status(500).json({ error: err.message });

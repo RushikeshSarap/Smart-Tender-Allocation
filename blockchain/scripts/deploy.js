@@ -1,12 +1,11 @@
 import hre from "hardhat";
 
 async function main() {
-  const TenderSystem = await hre.ethers.getContractFactory("TenderSystem");
-  
-  const tenderSystem = await TenderSystem.deploy();
-  await tenderSystem.waitForDeployment();
+  const TenderContract = await hre.ethers.getContractFactory("TenderContract");
+  const tenderContract = await TenderContract.deploy();
+  await tenderContract.waitForDeployment();
 
-  console.log("TenderSystem deployed to:", await tenderSystem.getAddress());
+  console.log("TenderContract deployed to:", await tenderContract.getAddress());
 }
 
 main().catch((error) => {
