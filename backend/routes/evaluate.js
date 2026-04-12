@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const { authenticateToken, verifyAdmin } = require('../middleware/authMiddleware');
 const { evaluateTenderBids } = require('../services/evaluationService');
-const { blockchainLogger } = require('../web3_setup');
+const { blockchainLogger, generateResultHash } = require('../web3_setup');
 
 const POLL_INTERVAL_MS = 4000;
 let workerRunning = false;
@@ -65,7 +65,19 @@ const processPendingJob = async () => {
       ['completed', winningBid.id, jobId]
     );
 
-    await blockchainLogger.storeWinner(tenderId, winningBid.id, winningBid.true_cost);
+    const resultPayload = {
+      tenderId,
+      winnerId: String(winningBid.bidder_id),
+      trueCost: Number(winningBid.true_cost)
+    };
+    const resultHash = generateResultHash(resultPayload);
+    const txHash = await blockchainLogger.storeResult(tenderId, resultPayload.winnerId, resultPayload.trueCost, resultHash);
+
+    try {
+      await db.query('UPDATE evaluation_jobs SET result_tx_hash = ? WHERE id = ?', [txHash, jobId]);
+    } catch (updateErr) {
+      console.warn(`[WARN] result_tx_hash column update failed: ${updateErr.message}`);
+    }
 
     console.log(`[WORKER] Completed evaluation job ${jobId} for tender ${tenderId}`);
   } catch (err) {

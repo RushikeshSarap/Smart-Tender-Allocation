@@ -21,12 +21,14 @@ const tendersRoutes = require('./routes/tenders');
 const bidsRoutes = require('./routes/bids');
 const evaluateRoutes = require('./routes/evaluate');
 const resultRoutes = require('./routes/result');
+const blockchainRoutes = require('./routes/blockchain');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/tender', tendersRoutes);
 app.use('/api/bid', bidsRoutes);
 app.use('/api/evaluate', evaluateRoutes);
 app.use('/api/result', resultRoutes);
+app.use('/api/blockchain', blockchainRoutes);
 
 app.listen(port, () => {
   console.log(`Backend server running on http://localhost:${port}`);

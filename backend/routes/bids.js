@@ -34,7 +34,13 @@ router.post('/', authenticateToken, upload.single('support_doc'), async (req, re
     try {
         console.log(`[INFO] Received bid for Tender ${tender_id} from Bidder ${bidder_id}`);
 
-        const bidDataObj = { tender_id, bidder_id, quoted_bid, estimated_completion_days, support_doc_url };
+        const bidDataObj = {
+            tender_id: Number(tender_id),
+            bidder_id,
+            quoted_bid: Number(quoted_bid) || 0,
+            estimated_completion_days: Number(estimated_completion_days) || 0,
+            support_doc_url
+        };
         const bid_hash = generateBidHash(bidDataObj);
 
         const [result] = await db.query(
@@ -45,9 +51,20 @@ router.post('/', authenticateToken, upload.single('support_doc'), async (req, re
 
         console.log(`[INFO] Bid stored in MySQL successfully. Bid ID: ${bidId}`);
 
-        await blockchainLogger.storeBidHash(bidId, tender_id, bid_hash);
+        const txHash = await blockchainLogger.storeBidHash(tender_id, bid_hash);
+        try {
+            await db.query('UPDATE bids SET bid_tx_hash = ? WHERE id = ?', [txHash, bidId]);
+        } catch (updateErr) {
+            console.warn(`[WARN] bid_tx_hash column update failed: ${updateErr.message}`);
+        }
 
-        res.status(201).json({ message: 'Bid submitted and secured on blockchain successfully', id: bidId, hash: bid_hash, support_doc_url });
+        res.status(201).json({
+            message: 'Bid submitted and secured on blockchain successfully',
+            id: bidId,
+            hash: bid_hash,
+            blockchain_tx_hash: txHash,
+            support_doc_url
+        });
     } catch (err) {
         console.error(`[ERROR] Failed to submit bid: ${err.message}`);
         res.status(500).json({ error: err.message });

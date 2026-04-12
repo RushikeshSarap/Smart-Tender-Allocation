@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "seed": "node scripts/seedSampleData.js",
+    "test:api": "node scripts/apiSmokeTest.js",
+    "test": "npm run test:api"
   },
   "keywords": [],
   "author": "",

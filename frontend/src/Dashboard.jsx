@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Bar } from 'react-chartjs-2';
 import 'chart.js/auto';
 
@@ -7,6 +8,7 @@ const Dashboard = ({ data }) => {
   const [winner, setWinner] = useState(null);
   const [verificationStatus, setVerificationStatus] = useState('Not verified');
   const [verifying, setVerifying] = useState(false);
+  const [verifyResult, setVerifyResult] = useState(null);
 
   useEffect(() => {
     if (data) {
@@ -58,13 +60,22 @@ const Dashboard = ({ data }) => {
   const costGap = secondBest ? Number(secondBest.true_cost - winner.true_cost).toLocaleString() : 'N/A';
   const explanationText = data.explanation || `Bidder ${winner.bidder_id} selected because it has the lowest true cost, driven by balanced delay, risk, and social factors.`;
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
+    if (!data?.tender?.id) return;
     setVerifying(true);
     setVerificationStatus('Verifying...');
-    setTimeout(() => {
-      setVerificationStatus('Verified');
+    setVerifyResult(null);
+
+    try {
+      const response = await axios.get(`/blockchain/verify/${data.tender.id}`);
+      setVerifyResult(response.data);
+      setVerificationStatus(response.data.resultVerified ? 'Verified' : 'Mismatch detected');
+    } catch (err) {
+      console.error(err);
+      setVerificationStatus('Verification error');
+    } finally {
       setVerifying(false);
-    }, 1400);
+    }
   };
 
   return (
@@ -118,7 +129,7 @@ const Dashboard = ({ data }) => {
               <tbody>
                 {bids.map((bid) => (
                   <tr key={bid.id} className={bid.id === winner.id ? 'winner-row' : ''}>
-                    <td>Bidder {bid.bidder_id}{bid.id === winner.id ? ' 🏆' : ''}</td>
+                    <td>Bidder {bid.bidder_id}{bid.id === winner.id ? ' (winner)' : ''}</td>
                     <td>${Number(bid.quoted_bid).toLocaleString()}</td>
                     <td>${Number(bid.delay_cost || 0).toLocaleString()}</td>
                     <td>${Number(bid.overrun_cost || 0).toLocaleString()}</td>
@@ -144,12 +155,22 @@ const Dashboard = ({ data }) => {
           </div>
           <div className="verification-panel glass-card">
             <h4>Blockchain Verification</h4>
-            <p>Transaction ID / Bid Hash</p>
+            <p>Winning Bid Hash</p>
             <div className="tx-id-line">{winner.bid_hash || 'Not available'}</div>
+            <p>On-chain Result Hash</p>
+            <div className="tx-id-line">{data.blockchain?.result_record?.resultHash || 'Not available'}</div>
             <p>Status: <strong>{verificationStatus}</strong></p>
             <button className="btn btn-primary" onClick={handleVerify} disabled={verifying || verificationStatus === 'Verified'}>
-              {verificationStatus === 'Verified' ? 'Verified' : verifying ? 'Verifying...' : 'Verify on Blockchain'}
+              {verificationStatus === 'Verified' ? 'Verified' : verifying ? 'Verifying...' : 'Verify Integrity'}
             </button>
+            {data.blockchain?.result_transaction_hash && (
+              <p className="blockchain-note">Transaction ID: <strong>{data.blockchain.result_transaction_hash}</strong></p>
+            )}
+            {verifyResult && (
+              <div className={`verify-badge ${verifyResult.resultVerified ? 'verified' : 'unverified'}`}>
+                {verifyResult.resultVerified ? 'Result integrity confirmed' : 'Result mismatch detected'}
+              </div>
+            )}
           </div>
         </section>
       </div>
