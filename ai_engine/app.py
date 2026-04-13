@@ -3,12 +3,50 @@ from flask_cors import CORS
 import random
 import re
 import os
+import shutil
 import tempfile
 from pdf2image import convert_from_path
 import pytesseract
 
+# If Tesseract is installed but not available on PATH, set the executable path explicitly.
+TESSERACT_PATHS = [
+    r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+    r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe"
+]
+for path in TESSERACT_PATHS:
+    if os.path.exists(path):
+        pytesseract.pytesseract.tesseract_cmd = path
+        break
+
+# If Poppler is installed but not available on PATH, set the executable path explicitly.
+POPPLER_PATH = os.getenv('POPPLER_PATH')
+if not POPPLER_PATH:
+    POPPLER_PATHS = [
+        r"C:\Users\rushi\Downloads\poppler-25.12.0\Library\bin",
+        r"C:\Program Files\poppler-23.05.0\Library\bin",
+        r"C:\Program Files\poppler\Library\bin",
+        r"C:\Program Files\poppler\bin",
+        r"C:\Program Files (x86)\poppler\Library\bin",
+        r"C:\Program Files (x86)\poppler\bin"
+    ]
+    for path in POPPLER_PATHS:
+        if os.path.exists(path):
+            POPPLER_PATH = path
+            break
+
+print(f'[AI ENGINE] Tesseract path = {pytesseract.pytesseract.tesseract_cmd}', flush=True)
+print(f'[AI ENGINE] Poppler path = {POPPLER_PATH}', flush=True)
+
 app = Flask(__name__)
 CORS(app)
+
+@app.route('/', methods=['GET'])
+def health_check():
+    return jsonify({
+        'status': 'ok',
+        'tesseract': pytesseract.pytesseract.tesseract_cmd,
+        'poppler_path': POPPLER_PATH
+    })
 
 PROJECT_TYPE_MAINTENANCE_FACTORS = {
     'roads': 0.15,
@@ -99,7 +137,7 @@ def estimate_risk_score(success_rate, avg_delay_days, rating_score):
 
 
 def parse_numeric(value):
-    if not value:
+    if value is None or value == '':
         return 0.0
     cleaned = re.sub(r'[^0-9\.]', '', str(value))
     try:
@@ -110,18 +148,20 @@ def parse_numeric(value):
 
 @app.route('/predict_true_cost', methods=['POST'])
 def predict_true_cost():
+    print('[AI ENGINE] /predict_true_cost request received')
     data = request.json or {}
+    print('[AI ENGINE] predict request body:', data)
     try:
-        base_cost = float(data.get('base_cost') or data.get('quoted_bid') or 0)
-        proposed_timeline = float(data.get('proposed_timeline') or data.get('estimated_completion_days') or 90)
-        budget = float(data.get('project_budget') or data.get('budget') or base_cost)
+        base_cost = parse_numeric(data.get('base_cost') or data.get('quoted_bid') or 0)
+        proposed_timeline = parse_numeric(data.get('proposed_timeline') or data.get('estimated_completion_days') or 90)
+        budget = parse_numeric(data.get('project_budget') or data.get('budget') or base_cost)
         project_type = normalize_project_type(data.get('project_type') or '')
         importance = importance_for_project(project_type)
 
-        total_projects = int(data.get('total_projects') or 0)
-        success_rate = float(data.get('success_rate') or 0.78)
-        avg_delay_days = float(data.get('avg_delay_days') or 18)
-        rating_score = float(data.get('rating_score') or 4.1)
+        total_projects = int(parse_numeric(data.get('total_projects') or 0))
+        success_rate = parse_numeric(data.get('success_rate') or 0.78)
+        avg_delay_days = parse_numeric(data.get('avg_delay_days') or 18)
+        rating_score = parse_numeric(data.get('rating_score') or 4.1)
 
         predicted_delay = estimate_predicted_delay(proposed_timeline, avg_delay_days, success_rate, rating_score)
         overrun_probability = estimate_overrun_probability(success_rate, avg_delay_days, rating_score, base_cost, budget)
@@ -171,23 +211,40 @@ def predict_true_cost():
 
 @app.route('/extract_tender', methods=['POST'])
 def extract_tender():
+    print('[AI ENGINE] /extract_tender request received')
     if 'file' not in request.files:
+        print('[AI ENGINE] extract_tender missing file')
         return jsonify({'error': 'PDF file is required'}), 400
 
     file = request.files['file']
     if file.filename == '':
+        print('[AI ENGINE] extract_tender empty filename')
         return jsonify({'error': 'PDF file is required'}), 400
 
     with tempfile.TemporaryDirectory() as temp_dir:
         file_path = os.path.join(temp_dir, file.filename)
         file.save(file_path)
+        print('[AI ENGINE] saved PDF to', file_path, flush=True)
 
         try:
-            pages = convert_from_path(file_path, dpi=200)
+            if not POPPLER_PATH and not shutil.which('pdftoppm'):
+                raise RuntimeError(
+                    'Poppler is not installed or not found. Install the Windows Poppler binary release and set POPPLER_PATH to the folder containing pdftoppm.exe.'
+                )
+
+            convert_args = {'dpi': 200}
+            if POPPLER_PATH:
+                convert_args['poppler_path'] = POPPLER_PATH
+            print('[AI ENGINE] starting convert_from_path', convert_args, flush=True)
+            pages = convert_from_path(file_path, **convert_args)
+            print('[AI ENGINE] convert_from_path completed, pages=', len(pages), flush=True)
+
             full_text = ''
-            for page in pages:
+            for idx, page in enumerate(pages, start=1):
+                print(f'[AI ENGINE] OCR page {idx}/{len(pages)}', flush=True)
                 page_text = pytesseract.image_to_string(page)
                 full_text += page_text + '\n'
+            print('[AI ENGINE] OCR complete', flush=True)
 
             normalized = clean_text(full_text)
 

@@ -8,8 +8,19 @@ const PLACEHOLDER_ADDRESS = '0x1234567890123456789012345678901234567890';
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
 const web3 = new Web3(GANACHE_URL);
-if (PRIVATE_KEY) {
+
+const isValidPrivateKey = (key) => {
+  if (!key || typeof key !== 'string') return false;
+  const normalized = key.trim();
+  if (!normalized.startsWith('0x')) return false;
+  const hex = normalized.slice(2);
+  return /^[0-9a-fA-F]{64}$/.test(hex);
+};
+
+if (isValidPrivateKey(PRIVATE_KEY)) {
   web3.eth.accounts.wallet.add(PRIVATE_KEY);
+} else if (PRIVATE_KEY) {
+  console.warn('[WEB3] Invalid PRIVATE_KEY in environment; falling back to node-managed accounts.');
 }
 
 const contract = new web3.eth.Contract(contractABI, CONTRACT_ADDRESS);

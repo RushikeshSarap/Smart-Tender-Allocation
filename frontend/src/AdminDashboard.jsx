@@ -3,19 +3,29 @@ import axios from 'axios';
 import './index.css';
 import Dashboard from './Dashboard';
 
+const loadJson = (key) => {
+    try {
+        const value = localStorage.getItem(key);
+        return value ? JSON.parse(value) : null;
+    } catch {
+        return null;
+    }
+};
+
 const AdminDashboard = () => {
     const [tenders, setTenders] = useState([]);
     const [selectedTender, setSelectedTender] = useState(null);
+    const savedTenderForm = loadJson('tenderForm') || {};
     const [activeSection, setActiveSection] = useState('create');
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [estimatedBudget, setEstimatedBudget] = useState('');
-    const [deadline, setDeadline] = useState('');
-    const [requiredExperience, setRequiredExperience] = useState('');
-    const [projectType, setProjectType] = useState('');
+    const [title, setTitle] = useState(savedTenderForm.title || '');
+    const [description, setDescription] = useState(savedTenderForm.description || '');
+    const [estimatedBudget, setEstimatedBudget] = useState(savedTenderForm.estimatedBudget || '');
+    const [deadline, setDeadline] = useState(savedTenderForm.deadline || '');
+    const [requiredExperience, setRequiredExperience] = useState(savedTenderForm.requiredExperience || '');
+    const [projectType, setProjectType] = useState(savedTenderForm.projectType || '');
     const [pdfFile, setPdfFile] = useState(null);
-    const [ocrPreview, setOcrPreview] = useState(null);
-    const [ocrDraft, setOcrDraft] = useState(null);
+    const [ocrPreview, setOcrPreview] = useState(loadJson('ocrPreview'));
+    const [ocrDraft, setOcrDraft] = useState(loadJson('ocrDraft'));
     const [resultData, setResultData] = useState(null);
     const [jobState, setJobState] = useState(null);
     const [pollingMessage, setPollingMessage] = useState('');
@@ -29,6 +39,25 @@ const AdminDashboard = () => {
         setNotification({ message, type });
         setTimeout(() => setNotification(null), 4500);
     };
+
+    useEffect(() => {
+        localStorage.setItem('ocrPreview', JSON.stringify(ocrPreview));
+    }, [ocrPreview]);
+
+    useEffect(() => {
+        localStorage.setItem('ocrDraft', JSON.stringify(ocrDraft));
+    }, [ocrDraft]);
+
+    useEffect(() => {
+        localStorage.setItem('tenderForm', JSON.stringify({
+            title,
+            description,
+            estimatedBudget,
+            deadline,
+            requiredExperience,
+            projectType
+        }));
+    }, [title, description, estimatedBudget, deadline, requiredExperience, projectType]);
 
     const fetchTenders = async () => {
         try {
@@ -57,6 +86,7 @@ const AdminDashboard = () => {
             setDeadline('');
             setRequiredExperience('');
             setProjectType('');
+            localStorage.removeItem('tenderForm');
             fetchTenders();
             showNotification('Tender created successfully.', 'success');
         } catch (err) {
@@ -71,9 +101,7 @@ const AdminDashboard = () => {
         try {
             const payload = new FormData();
             payload.append('file', pdfFile);
-            const res = await axios.post('/tender/upload', payload, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            const res = await axios.post('/tender/upload', payload);
             const extracted = res.data.extracted || {};
             setOcrPreview(extracted);
             setOcrDraft({
@@ -84,7 +112,13 @@ const AdminDashboard = () => {
                 required_experience: extracted.required_experience || '',
                 project_type: extracted.project_type || ''
             });
-            showNotification('Tender data extracted successfully. Review the draft fields.', 'success');
+            setTitle(extracted.title || '');
+            setDescription(extracted.description || '');
+            setEstimatedBudget(extracted.estimated_budget || '');
+            setDeadline(extracted.deadline || '');
+            setRequiredExperience(extracted.required_experience || '');
+            setProjectType(extracted.project_type || '');
+            showNotification('Tender data extracted successfully. Review the OCR draft below.', 'success');
         } catch (err) {
             showNotification('OCR failed: ' + (err.response?.data?.error || err.message), 'error');
         }
@@ -113,6 +147,8 @@ const AdminDashboard = () => {
             setOcrPreview(null);
             setOcrDraft(null);
             setPdfFile(null);
+            localStorage.removeItem('ocrPreview');
+            localStorage.removeItem('ocrDraft');
             fetchTenders();
             showNotification('Tender created from extracted PDF.', 'success');
         } catch (err) {
