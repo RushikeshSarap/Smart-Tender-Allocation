@@ -55,6 +55,9 @@ PROJECT_TYPE_MAINTENANCE_FACTORS = {
     'pipeline': 0.14,
     'railway': 0.13,
     'utility': 0.11,
+    'infrastructure': 0.14,
+    'civil engineering': 0.12,
+    'civil': 0.12,
     'default': 0.09
 }
 
@@ -68,10 +71,14 @@ IMPORTANCE_DAILY_LOSS = {
 PROJECT_TYPE_IMPORTANCE = {
     'roads': 'high',
     'bridge': 'high',
+    'infrastructure': 'high',
     'building': 'medium',
     'utility': 'medium',
     'railway': 'medium',
-    'pipeline': 'low'
+    'civil engineering': 'medium',
+    'civil': 'medium',
+    'pipeline': 'low',
+    'default': 'medium'
 }
 
 
@@ -101,7 +108,7 @@ def normalize_project_type(value):
 
 
 def importance_for_project(project_type):
-    return PROJECT_TYPE_IMPORTANCE.get(project_type, PROJECT_TYPE_IMPORTANCE['default'])
+    return PROJECT_TYPE_IMPORTANCE.get(project_type, 'medium')
 
 
 def estimate_cost_per_month(total_budget):
