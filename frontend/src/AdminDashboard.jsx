@@ -103,21 +103,23 @@ const AdminDashboard = () => {
             payload.append('file', pdfFile);
             const res = await axios.post('/tender/upload', payload);
             const extracted = res.data.extracted || {};
-            setOcrPreview(extracted);
-            setOcrDraft({
+            const normalizedExtracted = {
                 title: extracted.title || '',
                 description: extracted.description || '',
                 estimated_budget: extracted.estimated_budget || '',
                 deadline: extracted.deadline || '',
-                required_experience: extracted.required_experience || '',
+                required_experience: extracted.required_experience || extracted.experience_required || '',
                 project_type: extracted.project_type || ''
-            });
-            setTitle(extracted.title || '');
-            setDescription(extracted.description || '');
-            setEstimatedBudget(extracted.estimated_budget || '');
-            setDeadline(extracted.deadline || '');
-            setRequiredExperience(extracted.required_experience || '');
-            setProjectType(extracted.project_type || '');
+            };
+
+            setOcrPreview(normalizedExtracted);
+            setOcrDraft(normalizedExtracted);
+            setTitle(normalizedExtracted.title);
+            setDescription(normalizedExtracted.description);
+            setEstimatedBudget(normalizedExtracted.estimated_budget);
+            setDeadline(normalizedExtracted.deadline);
+            setRequiredExperience(normalizedExtracted.required_experience);
+            setProjectType(normalizedExtracted.project_type);
             showNotification('Tender data extracted successfully. Review the OCR draft below.', 'success');
         } catch (err) {
             showNotification('OCR failed: ' + (err.response?.data?.error || err.message), 'error');

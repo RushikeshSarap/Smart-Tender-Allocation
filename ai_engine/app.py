@@ -283,7 +283,7 @@ def extract_tender():
                 'description': description,
                 'estimated_budget': estimated_budget,
                 'deadline': deadline,
-                'experience_required': required_experience,
+                'required_experience': required_experience,
                 'project_type': project_type,
                 'raw_text': normalized
             })

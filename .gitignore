@@ -44,3 +44,6 @@ typechain-types/
 .idea/
 .DS_Store
 Thumbs.db
+
+
+uploads/
