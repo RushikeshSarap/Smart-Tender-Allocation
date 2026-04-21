@@ -186,10 +186,25 @@ def predict_true_cost():
 
         true_cost = base_cost + delay_cost + overrun_cost + maintenance_cost + social_cost + risk_penalty
 
-        explanation = (
-            f"Bidder predicted delay is {predicted_delay:.1f} months, overrun probability is {overrun_probability:.2f}, "
-            f"and risk score is {risk_score:.2f}. This results in the lowest total True Cost when hidden costs are added to the base bid."
-        )
+        explanation_parts = [
+            f"Evaluated true cost for Bidder {data.get('bidder_id', 'N/A')}."
+        ]
+
+        if predicted_delay > 0.5:
+            explanation_parts.append(f"Predicted delay of {predicted_delay:.1f} months due to historical performance and timeline factors, adding ₹{delay_cost:,.2f} in overhead.")
+        
+        if overrun_probability > 0.3:
+            explanation_parts.append(f"High overrun risk ({overrun_probability*100:.0f}%) identified based on bidder success rate and budget variance.")
+
+        explanation_parts.append(f"Maintenance cost set at {maintenance_factor*100:.0f}% of base bid for '{project_type}' project.")
+
+        if importance == 'high':
+            explanation_parts.append(f"High public impact penalty (₹{social_cost:,.2f}) applied due to project importance and timeline risks.")
+
+        if risk_penalty > (base_cost * 0.05):
+            explanation_parts.append(f"Significant risk penalty (₹{risk_penalty:,.2f}) applied due to combination of low success rate and high average delays.")
+
+        explanation = " ".join(explanation_parts)
 
         return jsonify({
             'predicted_delay': round(predicted_delay, 2),

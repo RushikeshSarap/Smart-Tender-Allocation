@@ -1,0 +1,12 @@
+USE smart_tender_db;
+
+ALTER TABLE bids 
+ADD COLUMN delay_cost DECIMAL(15, 2) DEFAULT 0,
+ADD COLUMN overrun_cost DECIMAL(15, 2) DEFAULT 0,
+ADD COLUMN maintenance_cost DECIMAL(15, 2) DEFAULT 0,
+ADD COLUMN social_cost DECIMAL(15, 2) DEFAULT 0,
+ADD COLUMN risk_penalty DECIMAL(15, 2) DEFAULT 0,
+ADD COLUMN predicted_delay DECIMAL(5, 2) DEFAULT 0,
+ADD COLUMN overrun_probability DECIMAL(5, 2) DEFAULT 0,
+ADD COLUMN risk_score DECIMAL(5, 2) DEFAULT 0,
+ADD COLUMN explanation TEXT;

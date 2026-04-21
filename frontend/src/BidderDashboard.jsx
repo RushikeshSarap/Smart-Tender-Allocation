@@ -145,7 +145,7 @@ const BidderDashboard = () => {
                                             <td>{t.id}</td>
                                             <td>{t.title}</td>
                                             <td>{new Date(t.deadline).toLocaleDateString()}</td>
-                                            <td>${Number(t.estimated_budget).toLocaleString()}</td>
+                                            <td>₹{Number(t.estimated_budget).toLocaleString()}</td>
                                             <td className="table-actions">
                                                 <button className="btn btn-secondary" onClick={() => selectTender(t)}>Details</button>
                                             </td>
@@ -170,7 +170,7 @@ const BidderDashboard = () => {
                                     </div>
                                     <div>
                                         <span>Budget</span>
-                                        <strong>${Number(selectedTender.estimated_budget).toLocaleString()}</strong>
+                                        <strong>₹{Number(selectedTender.estimated_budget).toLocaleString()}</strong>
                                     </div>
                                     <div>
                                         <span>Deadline</span>
@@ -196,7 +196,7 @@ const BidderDashboard = () => {
                                 <form className="tender-form" onSubmit={handleBidSubmit}>
                                     <input
                                         className="form-field"
-                                        placeholder="Bid Amount ($)"
+                                        placeholder="Bid Amount (₹)"
                                         type="number"
                                         value={bidAmount}
                                         onChange={(e) => setBidAmount(e.target.value)}
@@ -268,7 +268,7 @@ const BidderDashboard = () => {
                                     <tbody>
                                         {myBidsForTender.map((item, index) => (
                                             <tr key={index}>
-                                                <td>${item.bid.toLocaleString()}</td>
+                                                <td>₹{item.bid.toLocaleString()}</td>
                                                 <td>{item.days}</td>
                                                 <td>{item.txHash}</td>
                                                 <td>{item.timestamp}</td>

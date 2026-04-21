@@ -220,7 +220,7 @@ const AdminDashboard = () => {
                 <p>{selectedTender.description}</p>
             </div>
             <div className="tender-detail-grid">
-                <div><span>Budget</span><strong>${Number(selectedTender.estimated_budget).toLocaleString()}</strong></div>
+                <div><span>Budget</span><strong>₹{Number(selectedTender.estimated_budget).toLocaleString()}</strong></div>
                 <div><span>Deadline</span><strong>{new Date(selectedTender.deadline).toLocaleDateString()}</strong></div>
                 <div><span>Required Experience</span><strong>{selectedTender.required_experience || 'N/A'}</strong></div>
                 <div><span>Project Type</span><strong>{selectedTender.project_type || 'N/A'}</strong></div>
@@ -309,7 +309,7 @@ const AdminDashboard = () => {
                                     <input
                                         className="form-field"
                                         type="number"
-                                        placeholder="Estimated Budget ($)"
+                                        placeholder="Estimated Budget (₹)"
                                         value={estimatedBudget}
                                         onChange={e => setEstimatedBudget(e.target.value)}
                                         required
@@ -433,7 +433,7 @@ const AdminDashboard = () => {
                                                 <td>{t.id}</td>
                                                 <td>{t.title}</td>
                                                 <td>{new Date(t.deadline).toLocaleDateString()}</td>
-                                                <td>${Number(t.estimated_budget).toLocaleString()}</td>
+                                                <td>₹{Number(t.estimated_budget).toLocaleString()}</td>
                                                 <td>{t.evaluation_status || 'pending'}</td>
                                                 <td className="table-actions">
                                                     <button className="btn btn-secondary" onClick={() => selectTenderDetail(t)}>View</button>
@@ -458,7 +458,7 @@ const AdminDashboard = () => {
                                     </div>
                                     <div>
                                         <span>Budget</span>
-                                        <strong>${Number(selectedTender.estimated_budget).toLocaleString()}</strong>
+                                        <strong>₹{Number(selectedTender.estimated_budget).toLocaleString()}</strong>
                                     </div>
                                     <div>
                                         <span>Deadline</span>

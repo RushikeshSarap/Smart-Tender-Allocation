@@ -9,6 +9,11 @@ const Dashboard = ({ data }) => {
   const [verificationStatus, setVerificationStatus] = useState('Not verified');
   const [verifying, setVerifying] = useState(false);
   const [verifyResult, setVerifyResult] = useState(null);
+  const [expandedBidId, setExpandedBidId] = useState(null);
+
+  const toggleBidDetails = (bidId) => {
+    setExpandedBidId(expandedBidId === bidId ? null : bidId);
+  };
 
   useEffect(() => {
     if (data) {
@@ -78,6 +83,7 @@ const Dashboard = ({ data }) => {
     }
   };
 
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
@@ -91,7 +97,7 @@ const Dashboard = ({ data }) => {
             <span className="badge winner-badge">L1 True Cost Winner</span>
             <h2>Bidder {winner.bidder_id}</h2>
           </div>
-          <div className="winner-score">${Number(winner.true_cost).toLocaleString()}</div>
+          <div className="winner-score">₹{Number(winner.true_cost).toLocaleString()}</div>
         </div>
 
         <div className="explanation-panel">
@@ -105,7 +111,7 @@ const Dashboard = ({ data }) => {
               <li>Cost-efficient maintenance and social impact</li>
             </ul>
           </div>
-          <p className="cost-gap">Cost gap to runner-up: <strong>${costGap}</strong></p>
+          <p className="cost-gap">Cost gap to runner-up: <strong>₹{costGap}</strong></p>
         </div>
       </section>
 
@@ -116,6 +122,7 @@ const Dashboard = ({ data }) => {
             <table className="bids-table">
               <thead>
                 <tr>
+                  <th></th>
                   <th>Bidder</th>
                   <th>Base Cost</th>
                   <th>Delay</th>
@@ -128,16 +135,33 @@ const Dashboard = ({ data }) => {
               </thead>
               <tbody>
                 {bids.map((bid) => (
-                  <tr key={bid.id} className={bid.id === winner.id ? 'winner-row' : ''}>
-                    <td>Bidder {bid.bidder_id}{bid.id === winner.id ? ' (winner)' : ''}</td>
-                    <td>${Number(bid.quoted_bid).toLocaleString()}</td>
-                    <td>${Number(bid.delay_cost || 0).toLocaleString()}</td>
-                    <td>${Number(bid.overrun_cost || 0).toLocaleString()}</td>
-                    <td>${Number(bid.maintenance_cost || 0).toLocaleString()}</td>
-                    <td>${Number(bid.social_cost || 0).toLocaleString()}</td>
-                    <td>${Number(bid.risk_penalty || 0).toLocaleString()}</td>
-                    <td className="true-cost-val">${Number(bid.true_cost || 0).toLocaleString()}</td>
-                  </tr>
+                  <React.Fragment key={bid.id}>
+                    <tr className={`${bid.id === winner.id ? 'winner-row' : ''} ${expandedBidId === bid.id ? 'expanded-row-base' : ''}`}>
+                      <td className="expand-cell">
+                        <button className="expand-toggle" onClick={() => toggleBidDetails(bid.id)}>
+                          {expandedBidId === bid.id ? '−' : '+'}
+                        </button>
+                      </td>
+                      <td>Bidder {bid.bidder_id}{bid.id === winner.id ? ' (winner)' : ''}</td>
+                      <td>₹{Number(bid.quoted_bid).toLocaleString()}</td>
+                      <td>₹{Number(bid.delay_cost || 0).toLocaleString()}</td>
+                      <td>₹{Number(bid.overrun_cost || 0).toLocaleString()}</td>
+                      <td>₹{Number(bid.maintenance_cost || 0).toLocaleString()}</td>
+                      <td>₹{Number(bid.social_cost || 0).toLocaleString()}</td>
+                      <td>₹{Number(bid.risk_penalty || 0).toLocaleString()}</td>
+                      <td className="true-cost-val">₹{Number(bid.true_cost || 0).toLocaleString()}</td>
+                    </tr>
+                    {expandedBidId === bid.id && (
+                      <tr className="explanation-row">
+                        <td colSpan="9">
+                          <div className="explanation-content-wrapper">
+                            <strong>Calculation Reasoning:</strong>
+                            <p>{bid.explanation || "No detailed reasoning available for this evaluation."}</p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>

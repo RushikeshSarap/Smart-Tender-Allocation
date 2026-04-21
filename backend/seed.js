@@ -109,9 +109,9 @@ async function seed() {
             const true_cost = bid.quoted_bid + bid.hidden_costs;
             const bid_hash = `hash_t1_b${bidderIds[bid.bidder_idx]}_${Date.now()}`;
             await db.query(
-                `INSERT INTO bids (tender_id, bidder_id, quoted_bid, estimated_completion_days, hidden_costs, true_cost, bid_hash)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [tender1Id, bidderIds[bid.bidder_idx], bid.quoted_bid, bid.completion_days, bid.hidden_costs, true_cost, bid_hash]
+                `INSERT INTO bids (tender_id, bidder_id, quoted_bid, estimated_completion_days, hidden_costs, true_cost, bid_hash, delay_cost, overrun_cost, maintenance_cost, social_cost, risk_penalty)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [tender1Id, bidderIds[bid.bidder_idx], bid.quoted_bid, bid.completion_days, bid.hidden_costs, true_cost, bid_hash, 0, 0, 0, 0, 0]
             );
             console.log(`   ↳ Bidder ${bidderIds[bid.bidder_idx]} bid ₹${(bid.quoted_bid/1e7).toFixed(2)}Cr (true: ₹${(true_cost/1e7).toFixed(2)}Cr, ${bid.completion_days} days)`);
         }
@@ -121,9 +121,9 @@ async function seed() {
             const true_cost = bid.quoted_bid + bid.hidden_costs;
             const bid_hash = `hash_t2_b${bidderIds[bid.bidder_idx]}_${Date.now()}`;
             await db.query(
-                `INSERT INTO bids (tender_id, bidder_id, quoted_bid, estimated_completion_days, hidden_costs, true_cost, bid_hash)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [tender2Id, bidderIds[bid.bidder_idx], bid.quoted_bid, bid.completion_days, bid.hidden_costs, true_cost, bid_hash]
+                `INSERT INTO bids (tender_id, bidder_id, quoted_bid, estimated_completion_days, hidden_costs, true_cost, bid_hash, delay_cost, overrun_cost, maintenance_cost, social_cost, risk_penalty)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [tender2Id, bidderIds[bid.bidder_idx], bid.quoted_bid, bid.completion_days, bid.hidden_costs, true_cost, bid_hash, 0, 0, 0, 0, 0]
             );
             console.log(`   ↳ Bidder ${bidderIds[bid.bidder_idx]} bid ₹${(bid.quoted_bid/1e7).toFixed(2)}Cr (true: ₹${(true_cost/1e7).toFixed(2)}Cr, ${bid.completion_days} days)`);
         }

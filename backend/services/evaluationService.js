@@ -61,8 +61,33 @@ const evaluateTenderBids = async (tender, bids) => {
     const hidden_costs = Number(delay_cost || 0) + Number(overrun_cost || 0) + Number(maintenance_cost || 0) + Number(social_cost || 0) + Number(risk_penalty || 0);
 
     await db.query(
-      'UPDATE bids SET hidden_costs = ?, true_cost = ? WHERE id = ?',
-      [hidden_costs, true_cost, bid.id]
+      `UPDATE bids SET 
+        hidden_costs = ?, 
+        true_cost = ?, 
+        delay_cost = ?, 
+        overrun_cost = ?, 
+        maintenance_cost = ?, 
+        social_cost = ?, 
+        risk_penalty = ?, 
+        predicted_delay = ?, 
+        overrun_probability = ?, 
+        risk_score = ?, 
+        explanation = ? 
+      WHERE id = ?`,
+      [
+        hidden_costs, 
+        true_cost, 
+        delay_cost, 
+        overrun_cost, 
+        maintenance_cost, 
+        social_cost, 
+        risk_penalty, 
+        predicted_delay, 
+        overrun_probability, 
+        risk_score, 
+        explanation, 
+        bid.id
+      ]
     );
 
     evaluatedBids.push({

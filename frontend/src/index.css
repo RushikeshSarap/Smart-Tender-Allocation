@@ -897,3 +897,72 @@ a {
     padding: 1.2rem 1rem 2rem;
   }
 }
+
+/* Bid Reasoning Table Styles */
+.expand-cell {
+  width: 40px;
+  text-align: center;
+}
+
+.expand-toggle {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  transition: all 0.2s ease;
+}
+
+.expand-toggle:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.expanded-row-base {
+  background: rgba(56, 189, 248, 0.05);
+}
+
+.explanation-row td {
+  padding: 0 !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.explanation-content-wrapper {
+  padding: 1.5rem 2rem;
+  background: rgba(15, 23, 42, 0.6);
+  border-left: 4px solid var(--primary-alt);
+  animation: slideDown 0.3s ease-out;
+}
+
+.explanation-content-wrapper strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--primary-alt);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.explanation-content-wrapper p {
+  margin: 0;
+  line-height: 1.6;
+  color: #cbd5e1;
+  font-size: 0.95rem;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
