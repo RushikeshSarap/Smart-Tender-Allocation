@@ -4,14 +4,15 @@ const axios = require('axios');
 const getBidderPerformance = async (bidderId) => {
   try {
     const [rows] = await db.query(
-      'SELECT past_projects, success_rate, avg_delay_days, rating_score FROM users WHERE id = ?',
+      'SELECT name, past_projects, success_rate, avg_delay_days, rating_score FROM users WHERE id = ?',
       [bidderId]
     );
     if (rows.length === 0) {
-      return { past_projects: 0, success_rate: 0.78, avg_delay_days: 18, rating_score: 4.1 };
+      return { name: 'Unknown', past_projects: 0, success_rate: 0.78, avg_delay_days: 18, rating_score: 4.1 };
     }
     const perf = rows[0];
     return {
+      name: perf.name || 'Unknown',
       past_projects: perf.past_projects || 0,
       success_rate: Number(perf.success_rate || 0.78),
       avg_delay_days: Number(perf.avg_delay_days || 18),
@@ -19,7 +20,7 @@ const getBidderPerformance = async (bidderId) => {
     };
   } catch (err) {
     console.error(`[WARN] Could not load performance for bidder ${bidderId}: ${err.message}`);
-    return { past_projects: 0, success_rate: 0.78, avg_delay_days: 18, rating_score: 4.1 };
+    return { name: 'Unknown', past_projects: 0, success_rate: 0.78, avg_delay_days: 18, rating_score: 4.1 };
   }
 };
 
@@ -92,6 +93,7 @@ const evaluateTenderBids = async (tender, bids) => {
 
     evaluatedBids.push({
       ...bid,
+      bidder_name: performance.name,
       delay_cost,
       overrun_cost,
       maintenance_cost,

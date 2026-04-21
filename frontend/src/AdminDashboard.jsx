@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './index.css';
 import Dashboard from './Dashboard';
+import { formatCurrency } from './utils';
 
 const loadJson = (key) => {
     try {
@@ -220,7 +221,7 @@ const AdminDashboard = () => {
                 <p>{selectedTender.description}</p>
             </div>
             <div className="tender-detail-grid">
-                <div><span>Budget</span><strong>₹{Number(selectedTender.estimated_budget).toLocaleString()}</strong></div>
+                <div><span>Budget</span><strong>{formatCurrency(selectedTender.estimated_budget)}</strong></div>
                 <div><span>Deadline</span><strong>{new Date(selectedTender.deadline).toLocaleDateString()}</strong></div>
                 <div><span>Required Experience</span><strong>{selectedTender.required_experience || 'N/A'}</strong></div>
                 <div><span>Project Type</span><strong>{selectedTender.project_type || 'N/A'}</strong></div>
@@ -433,7 +434,7 @@ const AdminDashboard = () => {
                                                 <td>{t.id}</td>
                                                 <td>{t.title}</td>
                                                 <td>{new Date(t.deadline).toLocaleDateString()}</td>
-                                                <td>₹{Number(t.estimated_budget).toLocaleString()}</td>
+                                                <td>{formatCurrency(t.estimated_budget)}</td>
                                                 <td>{t.evaluation_status || 'pending'}</td>
                                                 <td className="table-actions">
                                                     <button className="btn btn-secondary" onClick={() => selectTenderDetail(t)}>View</button>
@@ -458,7 +459,7 @@ const AdminDashboard = () => {
                                     </div>
                                     <div>
                                         <span>Budget</span>
-                                        <strong>₹{Number(selectedTender.estimated_budget).toLocaleString()}</strong>
+                                        <strong>{formatCurrency(selectedTender.estimated_budget)}</strong>
                                     </div>
                                     <div>
                                         <span>Deadline</span>

@@ -63,8 +63,8 @@ async function seed() {
             [
                 'National Highway Construction - Phase 1',
                 'Design and construction of a 25 km four-lane national highway including bridges, drainage systems, and safety railings. Work must comply with NHAI standards.',
-                75000000.00,
-                '5 years in road infrastructure',
+                15000000000.00,
+                '10 years in mega road infrastructure',
                 'Infrastructure'
             ].concat([adminId])
         );
@@ -77,8 +77,8 @@ async function seed() {
             [
                 'Smart City Water Treatment Plant',
                 'Construction and commissioning of a 50 MLD water treatment plant including civil work, mechanical equipment supply, electrical systems, and SCADA integration.',
-                120000000.00,
-                '7 years in water/civil infrastructure',
+                4500000000.00,
+                '8 years in water/civil infrastructure',
                 'Civil Engineering'
             ].concat([adminId])
         );
@@ -86,22 +86,22 @@ async function seed() {
         console.log(`✅ Tender 2 created → ID ${tender2Id}  |  Smart City Water Treatment Plant`);
 
         // ─── BIDS ─────────────────────────────────────────────────────────────
-        // Tender 1 bids (budget ~₹7.5 Cr) – each bidder bids differently
+        // Tender 1 bids (budget ~₹1500 Cr)
         const bids_t1 = [
-            { bidder_idx: 0, quoted_bid: 68500000, hidden_costs: 3200000, completion_days: 310 },
-            { bidder_idx: 1, quoted_bid: 72000000, hidden_costs: 2100000, completion_days: 340 },
-            { bidder_idx: 2, quoted_bid: 65000000, hidden_costs: 5500000, completion_days: 365 },
-            { bidder_idx: 3, quoted_bid: 74000000, hidden_costs: 1800000, completion_days: 295 },
-            { bidder_idx: 4, quoted_bid: 70500000, hidden_costs: 2900000, completion_days: 330 },
+            { bidder_idx: 0, quoted_bid: 14200000000, hidden_costs: 850000000, completion_days: 1050 },
+            { bidder_idx: 1, quoted_bid: 15150000000, hidden_costs: 420000000, completion_days: 1200 },
+            { bidder_idx: 2, quoted_bid: 13800000000, hidden_costs: 1150000000, completion_days: 1100 },
+            { bidder_idx: 3, quoted_bid: 15500000000, hidden_costs: 380000000, completion_days: 950 },
+            { bidder_idx: 4, quoted_bid: 14850000000, hidden_costs: 620000000, completion_days: 1150 },
         ];
 
-        // Tender 2 bids (budget ~₹12 Cr)
+        // Tender 2 bids (budget ~₹450 Cr)
         const bids_t2 = [
-            { bidder_idx: 0, quoted_bid: 109000000, hidden_costs: 5000000, completion_days: 420 },
-            { bidder_idx: 1, quoted_bid: 115000000, hidden_costs: 3500000, completion_days: 450 },
-            { bidder_idx: 2, quoted_bid: 104000000, hidden_costs: 8200000, completion_days: 480 },
-            { bidder_idx: 3, quoted_bid: 118000000, hidden_costs: 2800000, completion_days: 400 },
-            { bidder_idx: 4, quoted_bid: 111000000, hidden_costs: 4600000, completion_days: 435 },
+            { bidder_idx: 0, quoted_bid: 4100000000, hidden_costs: 250000000, completion_days: 520 },
+            { bidder_idx: 1, quoted_bid: 4350000000, hidden_costs: 180000000, completion_days: 580 },
+            { bidder_idx: 2, quoted_bid: 3950000000, hidden_costs: 420000000, completion_days: 640 },
+            { bidder_idx: 3, quoted_bid: 4420000000, hidden_costs: 140000000, completion_days: 500 },
+            { bidder_idx: 4, quoted_bid: 4210000000, hidden_costs: 290000000, completion_days: 550 },
         ];
 
         console.log('\n📋 Inserting bids for Tender 1...');

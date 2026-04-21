@@ -153,6 +153,35 @@ def parse_numeric(value):
         return 0.0
 
 
+def format_indian_currency(amount, use_shorthand=False):
+    """Formats a number in the Indian currency system (e.g., 1,23,45,678.90 or 1.23 Cr)"""
+    if use_shorthand:
+        if amount >= 10000000:
+            cr_amount = amount / 10000000
+            return f"{cr_amount:,.2f} Cr"
+        if amount >= 100000:
+            lakh_amount = amount / 100000
+            return f"{lakh_amount:,.2f} Lakh"
+    
+    s = f"{abs(int(amount))}"
+    decimal_part = f"{amount:.2f}".split('.')[1]
+    
+    if len(s) <= 3:
+        return f"{'-' if amount < 0 else ''}{s}.{decimal_part}"
+
+    last_three = s[-3:]
+    remaining = s[:-3]
+    
+    out = []
+    while len(remaining) > 2:
+        out.append(remaining[-2:])
+        remaining = remaining[:-2]
+    out.append(remaining)
+    
+    formatted_int = ",".join(out[::-1]) + "," + last_three
+    return f"{'-' if amount < 0 else ''}{formatted_int}.{decimal_part}"
+
+
 @app.route('/predict_true_cost', methods=['POST'])
 def predict_true_cost():
     print('[AI ENGINE] /predict_true_cost request received')
@@ -191,7 +220,7 @@ def predict_true_cost():
         ]
 
         if predicted_delay > 0.5:
-            explanation_parts.append(f"Predicted delay of {predicted_delay:.1f} months due to historical performance and timeline factors, adding ₹{delay_cost:,.2f} in overhead.")
+            explanation_parts.append(f"Predicted delay of {predicted_delay:.1f} months due to historical performance and timeline factors, adding ₹{format_indian_currency(delay_cost, True)} in overhead.")
         
         if overrun_probability > 0.3:
             explanation_parts.append(f"High overrun risk ({overrun_probability*100:.0f}%) identified based on bidder success rate and budget variance.")
@@ -199,10 +228,10 @@ def predict_true_cost():
         explanation_parts.append(f"Maintenance cost set at {maintenance_factor*100:.0f}% of base bid for '{project_type}' project.")
 
         if importance == 'high':
-            explanation_parts.append(f"High public impact penalty (₹{social_cost:,.2f}) applied due to project importance and timeline risks.")
+            explanation_parts.append(f"High public impact penalty (₹{format_indian_currency(social_cost, True)}) applied due to project importance and timeline risks.")
 
         if risk_penalty > (base_cost * 0.05):
-            explanation_parts.append(f"Significant risk penalty (₹{risk_penalty:,.2f}) applied due to combination of low success rate and high average delays.")
+            explanation_parts.append(f"Significant risk penalty (₹{format_indian_currency(risk_penalty, True)}) applied due to combination of low success rate and high average delays.")
 
         explanation = " ".join(explanation_parts)
 

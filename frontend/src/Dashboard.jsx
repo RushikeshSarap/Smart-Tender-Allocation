@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Bar } from 'react-chartjs-2';
 import 'chart.js/auto';
+import { formatCurrency } from './utils';
 
 const Dashboard = ({ data }) => {
   const [bids, setBids] = useState([]);
@@ -28,7 +29,7 @@ const Dashboard = ({ data }) => {
   if (!winner) return <div className="loading">No winning bid has been selected yet.</div>;
 
   const trueCostData = {
-    labels: bids.map((b) => `Bidder ${b.bidder_id}`),
+    labels: bids.map((b, idx) => b.bidder_name || `Bidder ${idx + 1}`),
     datasets: [
       {
         label: 'True Cost',
@@ -39,7 +40,7 @@ const Dashboard = ({ data }) => {
   };
 
   const breakdownData = {
-    labels: bids.map((b) => `Bidder ${b.bidder_id}`),
+    labels: bids.map((b, idx) => b.bidder_name || `Bidder ${idx + 1}`),
     datasets: [
       { label: 'Base Cost', data: bids.map((b) => Number(b.quoted_bid || 0)), backgroundColor: '#4ade80' },
       { label: 'Delay Cost', data: bids.map((b) => Number(b.delay_cost || 0)), backgroundColor: '#f87171' },
@@ -62,8 +63,9 @@ const Dashboard = ({ data }) => {
   };
 
   const secondBest = bids.filter((b) => b.id !== winner.id).sort((a, b) => a.true_cost - b.true_cost)[0];
-  const costGap = secondBest ? Number(secondBest.true_cost - winner.true_cost).toLocaleString() : 'N/A';
-  const explanationText = data.explanation || `Bidder ${winner.bidder_id} selected because it has the lowest true cost, driven by balanced delay, risk, and social factors.`;
+  const costGap = secondBest ? formatCurrency(secondBest.true_cost - winner.true_cost) : 'N/A';
+  const winnerName = winner.bidder_name || `Bidder ${winner.bidder_id}`;
+  const explanationText = data.explanation || `${winnerName} selected because it has the lowest true cost, driven by balanced delay, risk, and social factors.`;
 
   const handleVerify = async () => {
     if (!data?.tender?.id) return;
@@ -95,9 +97,9 @@ const Dashboard = ({ data }) => {
         <div className="winner-headline">
           <div>
             <span className="badge winner-badge">L1 True Cost Winner</span>
-            <h2>Bidder {winner.bidder_id}</h2>
+            <h2>{winner.bidder_name || `Bidder ${winner.bidder_id}`}</h2>
           </div>
-          <div className="winner-score">₹{Number(winner.true_cost).toLocaleString()}</div>
+          <div className="winner-score">{formatCurrency(winner.true_cost)}</div>
         </div>
 
         <div className="explanation-panel">
@@ -142,14 +144,14 @@ const Dashboard = ({ data }) => {
                           {expandedBidId === bid.id ? '−' : '+'}
                         </button>
                       </td>
-                      <td>Bidder {bid.bidder_id}{bid.id === winner.id ? ' (winner)' : ''}</td>
-                      <td>₹{Number(bid.quoted_bid).toLocaleString()}</td>
-                      <td>₹{Number(bid.delay_cost || 0).toLocaleString()}</td>
-                      <td>₹{Number(bid.overrun_cost || 0).toLocaleString()}</td>
-                      <td>₹{Number(bid.maintenance_cost || 0).toLocaleString()}</td>
-                      <td>₹{Number(bid.social_cost || 0).toLocaleString()}</td>
-                      <td>₹{Number(bid.risk_penalty || 0).toLocaleString()}</td>
-                      <td className="true-cost-val">₹{Number(bid.true_cost || 0).toLocaleString()}</td>
+                      <td>{bid.bidder_name || `Bidder ${bid.bidder_id}`}{bid.id === winner.id ? ' (winner)' : ''}</td>
+                      <td>{formatCurrency(bid.quoted_bid)}</td>
+                      <td>{formatCurrency(bid.delay_cost || 0)}</td>
+                      <td>{formatCurrency(bid.overrun_cost || 0)}</td>
+                      <td>{formatCurrency(bid.maintenance_cost || 0)}</td>
+                      <td>{formatCurrency(bid.social_cost || 0)}</td>
+                      <td>{formatCurrency(bid.risk_penalty || 0)}</td>
+                      <td className="true-cost-val">{formatCurrency(bid.true_cost || 0)}</td>
                     </tr>
                     {expandedBidId === bid.id && (
                       <tr className="explanation-row">

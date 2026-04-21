@@ -10,7 +10,14 @@ router.get('/:tender_id', authenticateToken, async (req, res) => {
     const [tenderRows] = await db.query('SELECT * FROM tenders WHERE id = ?', [tenderId]);
     if (tenderRows.length === 0) return res.status(404).json({ error: 'Tender not found' });
 
-    const [bids] = await db.query('SELECT * FROM bids WHERE tender_id = ? ORDER BY true_cost ASC', [tenderId]);
+    const [bids] = await db.query(
+      `SELECT b.*, u.name as bidder_name 
+       FROM bids b 
+       JOIN users u ON b.bidder_id = u.id 
+       WHERE b.tender_id = ? 
+       ORDER BY b.true_cost ASC`, 
+      [tenderId]
+    );
     const [jobs] = await db.query(
       'SELECT * FROM evaluation_jobs WHERE tender_id = ? ORDER BY created_at DESC LIMIT 1',
       [tenderId]

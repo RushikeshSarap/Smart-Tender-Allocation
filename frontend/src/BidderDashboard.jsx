@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './index.css';
+import { formatCurrency } from './utils';
 
 const BidderDashboard = () => {
     const [tenders, setTenders] = useState([]);
@@ -145,7 +146,7 @@ const BidderDashboard = () => {
                                             <td>{t.id}</td>
                                             <td>{t.title}</td>
                                             <td>{new Date(t.deadline).toLocaleDateString()}</td>
-                                            <td>₹{Number(t.estimated_budget).toLocaleString()}</td>
+                                            <td>{formatCurrency(t.estimated_budget)}</td>
                                             <td className="table-actions">
                                                 <button className="btn btn-secondary" onClick={() => selectTender(t)}>Details</button>
                                             </td>
@@ -170,7 +171,7 @@ const BidderDashboard = () => {
                                     </div>
                                     <div>
                                         <span>Budget</span>
-                                        <strong>₹{Number(selectedTender.estimated_budget).toLocaleString()}</strong>
+                                        <strong>{formatCurrency(selectedTender.estimated_budget)}</strong>
                                     </div>
                                     <div>
                                         <span>Deadline</span>
@@ -239,7 +240,7 @@ const BidderDashboard = () => {
                                 </div>
                                 <div>
                                     <span>Winner</span>
-                                    <strong>{selectedResult.winner ? selectedResult.winner.bidder_id : 'Pending'}</strong>
+                                    <strong>{selectedResult.winner ? (selectedResult.winner.bidder_name || `Bidder ${selectedResult.winner.bidder_id}`) : 'Pending'}</strong>
                                 </div>
                                 <div>
                                     <span>Total Bids</span>
@@ -268,7 +269,7 @@ const BidderDashboard = () => {
                                     <tbody>
                                         {myBidsForTender.map((item, index) => (
                                             <tr key={index}>
-                                                <td>₹{item.bid.toLocaleString()}</td>
+                                                <td>{formatCurrency(item.bid)}</td>
                                                 <td>{item.days}</td>
                                                 <td>{item.txHash}</td>
                                                 <td>{item.timestamp}</td>
