@@ -104,7 +104,16 @@ router.post('/evaluate/:tender_id', authenticateToken, verifyAdmin, async (req, 
                     [hidden_costs, true_cost, bid.id]
                 );
                 
-                evaluatedBids.push({ ...bid, hidden_costs, true_cost });
+                evaluatedBids.push({ 
+                    ...bid, 
+                    hidden_costs, 
+                    true_cost,
+                    delay_cost,
+                    overrun_cost,
+                    maintenance_cost,
+                    social_cost,
+                    risk_penalty
+                });
             } catch (aiErr) {
                 console.error(`[ERROR] AI Prediction failed for bid ${bid.id}: ${aiErr.message}`);
                 throw new Error(`AI prediction failed: ${aiErr.message}`);
