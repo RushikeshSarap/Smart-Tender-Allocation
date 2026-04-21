@@ -5,6 +5,22 @@ import re
 import os
 import shutil
 import tempfile
+import json
+from pypdf import PdfReader
+from mistralai import Mistral
+from dotenv import load_dotenv
+
+# Load environment variables from backend/.env
+env_path = os.path.join(os.path.dirname(__file__), '..', 'backend', '.env')
+if os.path.exists(env_path):
+    load_dotenv(env_path)
+    print(f'[AI ENGINE] Loaded environment from {env_path}')
+else:
+    load_dotenv() # Fallback to local .env
+
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
+mistral_client = Mistral(api_key=MISTRAL_API_KEY) if MISTRAL_API_KEY else None
+
 from pdf2image import convert_from_path
 import pytesseract
 
@@ -260,6 +276,21 @@ def predict_true_cost():
         return jsonify({'status': 'error', 'message': str(e)}), 400
 
 
+def extract_text_from_pdf(pdf_path):
+    """Extracts all text from a PDF file using pypdf."""
+    try:
+        reader = PdfReader(pdf_path)
+        full_text = ""
+        for page in reader.pages:
+            text = page.extract_text()
+            if text:
+                full_text += text + "\n"
+        return full_text.strip()
+    except Exception as e:
+        print(f"[AI ENGINE] pypdf extraction failed: {e}")
+        return ""
+
+
 @app.route('/extract_tender', methods=['POST'])
 def extract_tender():
     print('[AI ENGINE] /extract_tender request received')
@@ -272,73 +303,81 @@ def extract_tender():
         print('[AI ENGINE] extract_tender empty filename')
         return jsonify({'error': 'PDF file is required'}), 400
 
+    if not MISTRAL_API_KEY:
+        return jsonify({'error': 'MISTRAL_API_KEY not configured in .env'}), 500
+
     with tempfile.TemporaryDirectory() as temp_dir:
         file_path = os.path.join(temp_dir, file.filename)
         file.save(file_path)
         print('[AI ENGINE] saved PDF to', file_path, flush=True)
 
         try:
-            if not POPPLER_PATH and not shutil.which('pdftoppm'):
-                raise RuntimeError(
-                    'Poppler is not installed or not found. Install the Windows Poppler binary release and set POPPLER_PATH to the folder containing pdftoppm.exe.'
-                )
+            # 1. Extract text from PDF
+            print('[AI ENGINE] Extracting text from PDF...', flush=True)
+            document_text = extract_text_from_pdf(file_path)
+            
+            if not document_text or len(document_text) < 50:
+                print('[AI ENGINE] fallback to Tesseract OCR (PDF might be image-based)', flush=True)
+                # Fallback to OCR if pypdf returns no text (scanned PDF)
+                convert_args = {'dpi': 200}
+                if POPPLER_PATH:
+                    convert_args['poppler_path'] = POPPLER_PATH
+                pages = convert_from_path(file_path, **convert_args)
+                document_text = ""
+                for page in pages:
+                    document_text += pytesseract.image_to_string(page) + "\n"
 
-            convert_args = {'dpi': 200}
-            if POPPLER_PATH:
-                convert_args['poppler_path'] = POPPLER_PATH
-            print('[AI ENGINE] starting convert_from_path', convert_args, flush=True)
-            pages = convert_from_path(file_path, **convert_args)
-            print('[AI ENGINE] convert_from_path completed, pages=', len(pages), flush=True)
+            if not document_text:
+                return jsonify({'error': 'Could not extract text from the PDF.'}), 400
 
-            full_text = ''
-            for idx, page in enumerate(pages, start=1):
-                print(f'[AI ENGINE] OCR page {idx}/{len(pages)}', flush=True)
-                page_text = pytesseract.image_to_string(page)
-                full_text += page_text + '\n'
-            print('[AI ENGINE] OCR complete', flush=True)
+            # 2. Preparation for Mistral
+            prompt = f"""
+            You are an expert procurement assistant. Extract the following tender details from the provided document text.
+            Return the result ENTIRELY as a valid JSON object with the following keys:
+            - title: The name or title of the tender.
+            - description: A concise summary of the project/tender.
+            - estimated_budget: The numeric budget value (extract only the number).
+            - deadline: The submission deadline date (YYYY-MM-DD format if possible, else as found).
+            - required_experience: Minimum years or specific experience required.
+            - project_type: One word category (roads, building, bridge, pipeline, railway, utility, infrastructure, civil).
 
-            normalized = clean_text(full_text)
+            Document Text:
+            ---
+            {document_text[:6000]} 
+            ---
+            
+            JSON format only, no other text.
+            """
 
-            title = parse_field([
-                r'Tender Title[:\-]\s*(.+)',
-                r'Project Title[:\-]\s*(.+)',
-                r'Title[:\-]\s*(.+)'
-            ], normalized)
-            estimated_budget = parse_field([
-                r'Estimated Budget[:\-]\s*\$?([0-9,\.]+)',
-                r'Budget[:\-]\s*\$?([0-9,\.]+)'
-            ], normalized)
-            deadline = parse_field([
-                r'Deadline[:\-]\s*([A-Za-z0-9\-/ ,]+)',
-                r'Deadline Date[:\-]\s*([A-Za-z0-9\-/ ,]+)'
-            ], normalized)
-            required_experience = parse_field([
-                r'Required Experience[:\-]\s*(.+)',
-                r'Experience Required[:\-]\s*(.+)',
-                r'Minimum Experience[:\-]\s*(.+)'
-            ], normalized)
-            project_type = parse_field([
-                r'Project Type[:\-]\s*(.+)',
-                r'Type of Project[:\-]\s*(.+)'
-            ], normalized)
+            print('[AI ENGINE] Sending request to Mistral AI...', flush=True)
+            messages = [{"role": "user", "content": prompt}]
+            
+            chat_response = mistral_client.chat.complete(
+                model="mistral-large-latest",
+                messages=messages,
+                response_format={"type": "json_object"}
+            )
+            
+            extracted_json = chat_response.choices[0].message.content
+            print(f'[AI ENGINE] Mistral Response: {extracted_json}', flush=True)
+            
+            result = json.loads(extracted_json)
+            
+            # Ensure keys exist
+            final_data = {
+                'title': result.get('title', ''),
+                'description': result.get('description', ''),
+                'estimated_budget': str(result.get('estimated_budget', '')),
+                'deadline': result.get('deadline', ''),
+                'required_experience': result.get('required_experience', ''),
+                'project_type': result.get('project_type', ''),
+                'raw_text': document_text[:500] + "..." # Just for debugging
+            }
 
-            description = parse_field([
-                r'Description[:\-]\s*(.+?)(?:\n(?:Estimated Budget|Budget|Deadline|Required Experience|Project Type)[:\-])'
-            ], full_text)
-            if not description:
-                lines = normalized.split('\n')
-                description = ' '.join(lines[1:5]).strip()
+            return jsonify(final_data)
 
-            return jsonify({
-                'title': title,
-                'description': description,
-                'estimated_budget': estimated_budget,
-                'deadline': deadline,
-                'required_experience': required_experience,
-                'project_type': project_type,
-                'raw_text': normalized
-            })
         except Exception as e:
+            print(f'[AI ERROR] Extraction failed: {str(e)}', flush=True)
             return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
